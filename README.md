@@ -35,7 +35,13 @@ Tests cover `frameToAscii` (output dimensions, luminance-to-character mapping) a
 npm run dev
 ```
 
-Vite starts on `http://localhost:5173`. In EvenHub developer mode, point the custom plugin URL at your machine's LAN IP (not `localhost`):
+Vite starts on `http://localhost:5173`. Use the EvenHub simulator to test locally without glasses:
+
+```sh
+evenhub-simulator http://localhost:5173 --automation-port 9898
+```
+
+In EvenHub developer mode on a real device, point the custom plugin URL at your machine's LAN IP (not `localhost`):
 
 ```
 http://192.168.1.x:5173
