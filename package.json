@@ -1,0 +1,22 @@
+{
+  "name": "even-doom",
+  "version": "0.1.0",
+  "scripts": {
+    "prebuild": "npx tsx scripts/process-wad.ts",
+    "predev": "npx tsx scripts/process-wad.ts",
+    "pretest": "npx tsx scripts/process-wad.ts",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.4",
+    "typescript": "^5",
+    "vite": "^5",
+    "vitest": "^2"
+  }
+}
