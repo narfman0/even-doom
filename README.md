@@ -29,6 +29,23 @@ npm test
 
 Tests cover `frameToAscii` (output dimensions, luminance-to-character mapping) and `Controls` (IMU turn rate, move/shoot set and reset timing). No EvenHub runtime is needed — tests run in Node.
 
+## Terminal simulator
+
+Run the raycaster directly in your terminal — no browser, no glasses, no EvenHub required:
+
+```sh
+npm run simulator
+```
+
+| Key | Action |
+|---|---|
+| W / ↑ | Move forward |
+| S / ↓ | Move back |
+| A / ← | Turn left |
+| D / → | Turn right |
+| Space / Enter | Shoot |
+| Q / Ctrl-C | Quit |
+
 ## Dev server workflow
 
 ```sh
@@ -60,12 +77,19 @@ Your phone and dev machine must be on the same LAN (or Tailscale). Source change
 
 ## Architecture
 
-The plugin runs entirely inside the EvenHub WebView — no server required.
+The codebase is split into three layers:
 
-- **`src/raycaster.ts`** — Wolfenstein-style DDA raycaster. Renders a 320×160 `ImageData` with distance-shaded walls on a 16×16 hardcoded map.
-- **`src/ascii.ts`** — Converts `ImageData` to a 58×24 ASCII string using BT.601 luminance and a density ramp (`' .:;+*#@'`). At 58 cols × 24 rows the output is ~1415 chars, well within the 2000-char EvenHub upgrade limit.
-- **`src/controls.ts`** — Maps IMU x-axis to turn rate and ring gestures to timed move/shoot pulses.
-- **`src/index.ts`** — EvenHub bridge: creates the startup container, runs the game loop at 10 fps via `setInterval`, wires IMU events after startup.
+**`src/core/`** — platform-agnostic engine
+- **`raycaster.ts`** — Wolfenstein-style DDA raycaster. Renders a 320×160 `ImageData` with distance-shaded walls and exposes `renderAscii(cols, rows)` for terminal output.
+- **`types.ts`** — shared types used across layers.
+
+**`src/even/`** — EvenHub plugin (runs inside the WebView, no server required)
+- **`index.ts`** — EvenHub bridge: creates the startup container, runs the game loop at 10 fps via `setInterval`, wires IMU events after startup.
+- **`controls.ts`** — Maps IMU x-axis to turn rate and ring gestures to timed move/shoot pulses.
+
+**`src/simulator/`** — terminal simulator (runs in Node, no glasses needed)
+- **`index.ts`** — Game loop that calls `renderAscii` and writes ANSI frames to stdout at 10 fps.
+- **`keyboard.ts`** — Raw-mode stdin handler; maps WASD/arrows/space to the same state interface as `Controls`.
 
 ## EvenHub SDK constraints
 
