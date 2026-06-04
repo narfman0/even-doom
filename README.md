@@ -2,6 +2,8 @@
 
 A Wolfenstein-style raycaster running inside an EvenHub plugin for Even G2 smart glasses. The 3D scene is rendered in real time and converted to ASCII art, then pushed to the lens display at ~10 fps. No WAD files, no external assets — the raycaster and map are entirely self-contained TypeScript.
 
+Based on the original Doom engine by id Software: https://github.com/id-software/doom
+
 ## Controls
 
 | Input | Action |
@@ -75,28 +77,6 @@ Your phone and dev machine must be on the same LAN (or Tailscale). Source change
    - **Release**: serve `dist/` with any static file server and enter its URL
 4. Open the plugin from the EvenHub app menu or glasses menu
 
-## Architecture
+## Architecture and technical reference
 
-The codebase is split into three layers:
-
-**`src/core/`** — platform-agnostic engine
-- **`raycaster.ts`** — Wolfenstein-style DDA raycaster. Renders a 320×160 `ImageData` with distance-shaded walls and exposes `renderAscii(cols, rows)` for terminal output.
-- **`types.ts`** — shared types used across layers.
-
-**`src/even/`** — EvenHub plugin (runs inside the WebView, no server required)
-- **`index.ts`** — EvenHub bridge: creates the startup container, runs the game loop at 10 fps via `setInterval`, wires IMU events after startup.
-- **`controls.ts`** — Maps IMU x-axis to turn rate and ring gestures to timed move/shoot pulses.
-
-**`src/simulator/`** — terminal simulator (runs in Node, no glasses needed)
-- **`index.ts`** — Game loop that calls `renderAscii` and writes ANSI frames to stdout at 10 fps.
-- **`keyboard.ts`** — Raw-mode stdin handler; maps WASD/arrows/space to the same state interface as `Controls`.
-
-## EvenHub SDK constraints
-
-| Constraint | Limit |
-|---|---|
-| Canvas size | 576 × 288 px |
-| Text content (upgrade) | Max 2000 chars |
-| `createStartUpPageContainer` | Call once only |
-| Event capture | Exactly one container may have `isEventCapture=1` |
-| IMU pace `P200` | ~200ms between IMU samples |
+See [AGENTS.md](AGENTS.md) for the full architecture, coordinate system notes, linedef structure, EvenHub SDK constraints, and known gaps.
