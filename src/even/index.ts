@@ -5,15 +5,12 @@ import {
   OsEventTypeList,
   ImuReportPace,
 } from '@evenrealities/even_hub_sdk'
-import { Raycaster } from './raycaster'
+import { Raycaster } from '../core/raycaster'
 import { Controls } from './controls'
 
 const CONTAINER_ID_GAME = 1
-
-// 58×24 fits within the 2000-char upgrade limit (58 * 24 + 23 newlines = 1415 chars)
 const ASCII_COLS = 58
 const ASCII_ROWS = 24
-
 const TARGET_FPS = 10
 const FRAME_INTERVAL_MS = 1000 / TARGET_FPS
 
@@ -49,33 +46,24 @@ async function main() {
 
   const raycaster = new Raycaster()
   const controls = new Controls()
-
   let lastTime = Date.now()
   let running = true
 
   function tick() {
     if (!running) return
-
     const now = Date.now()
     const dt = Math.min((now - lastTime) / 1000, 0.1)
     lastTime = now
 
     const state = controls.getState()
-
-    if (state.turnRate !== 0) {
-      if (state.turnRate > 0) {
-        raycaster.turnRight(Math.abs(state.turnRate) * dt)
-      } else {
-        raycaster.turnLeft(Math.abs(state.turnRate) * dt)
-      }
-    }
-
+    if (state.turnRate > 0) raycaster.turnRight(Math.abs(state.turnRate) * dt)
+    else if (state.turnRate < 0) raycaster.turnLeft(Math.abs(state.turnRate) * dt)
     if (state.moveForward) raycaster.moveForward(dt)
     if (state.moveBack) raycaster.moveBack(dt)
     if (state.shoot) raycaster.shoot()
+    raycaster.tick(dt)
 
-    const ascii = raycaster.renderAscii(ASCII_COLS, ASCII_ROWS)
-    pushText(ascii).catch(console.error)
+    pushText(raycaster.renderAscii(ASCII_COLS, ASCII_ROWS)).catch(console.error)
   }
 
   setInterval(tick, FRAME_INTERVAL_MS)
@@ -84,26 +72,16 @@ async function main() {
 
   bridge.onEvenHubEvent((event) => {
     const sys = event.sysEvent
-
     if (!sys) return
-
     if (sys.imuData) {
-      const { x, y, z } = sys.imuData
-      controls.onImu(x ?? 0, y ?? 0, z ?? 0)
+      controls.onImu(sys.imuData.x ?? 0, sys.imuData.y ?? 0, sys.imuData.z ?? 0)
       return
     }
-
-    if (sys.eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
-      controls.onScrollUp()
-    } else if (sys.eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
-      controls.onScrollDown()
-    } else if (sys.eventType === OsEventTypeList.CLICK_EVENT) {
-      controls.onTap()
-    } else if (sys.eventType === OsEventTypeList.FOREGROUND_ENTER_EVENT) {
-      running = true
-    } else if (sys.eventType === OsEventTypeList.FOREGROUND_EXIT_EVENT) {
-      running = false
-    }
+    if (sys.eventType === OsEventTypeList.SCROLL_TOP_EVENT) controls.onScrollUp()
+    else if (sys.eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) controls.onScrollDown()
+    else if (sys.eventType === OsEventTypeList.CLICK_EVENT) controls.onTap()
+    else if (sys.eventType === OsEventTypeList.FOREGROUND_ENTER_EVENT) running = true
+    else if (sys.eventType === OsEventTypeList.FOREGROUND_EXIT_EVENT) running = false
   })
 }
 

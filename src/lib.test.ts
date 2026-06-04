@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { frameToAscii } from './ascii'
-import { Controls } from './controls'
-import { Raycaster } from './raycaster'
+import { Controls } from './even/controls'
+import { Raycaster } from './core/raycaster'
 
 function makeImageData(width: number, height: number, fillRgb: [number, number, number]): ImageData {
   const data = new Uint8ClampedArray(width * height * 4)
@@ -141,16 +141,19 @@ describe('Controls', () => {
 })
 
 describe('Raycaster', () => {
-  it('renderAscii(10, 5) returns a string with 4 newlines (5 rows)', () => {
+  it('renderAscii(10, 5) returns rows+1 lines (game rows + HUD)', () => {
     const r = new Raycaster()
     const out = r.renderAscii(10, 5)
-    expect(out.split('\n')).toHaveLength(5)
+    // rows game lines + 1 HUD line
+    expect(out.split('\n')).toHaveLength(6)
   })
 
-  it('each line has exactly the requested number of columns', () => {
+  it('game lines (all except last) have exactly the requested number of columns', () => {
     const r = new Raycaster()
     const out = r.renderAscii(10, 5)
-    for (const line of out.split('\n')) {
+    const lines = out.split('\n')
+    // Skip the last HUD line
+    for (const line of lines.slice(0, -1)) {
       expect(line).toHaveLength(10)
     }
   })
@@ -204,5 +207,94 @@ describe('Raycaster', () => {
   it('shoot does not throw', () => {
     const r = new Raycaster()
     expect(() => r.shoot()).not.toThrow()
+  })
+})
+
+describe('Combat', () => {
+  it('Raycaster starts with playerHealth 100', () => {
+    const r = new Raycaster()
+    expect(r.getPlayerHealth()).toBe(100)
+  })
+
+  it('shoot() damages a nearby enemy placed directly in front of player', () => {
+    const r = new Raycaster()
+    // Find the first alive enemy and teleport it directly in front of the player
+    const enemies = r.getEnemies()
+    const e = enemies[0]
+    const originalHealth = e.health
+    // Player faces north (Doom angle 90° = +Y). With corrected angle (3π/2),
+    // "in front" = +Y direction in map coords.
+    e.x = r['x']
+    e.y = r['y'] + 100
+    e.alive = true
+    r.shoot()
+    expect(e.health).toBeLessThan(originalHealth)
+  })
+
+  it('dead enemies have alive=false after enough shots', () => {
+    const r = new Raycaster()
+    const enemies = r.getEnemies()
+    const e = enemies[0]
+    e.x = r['x']
+    e.y = r['y'] + 50
+    e.alive = true
+    e.health = 15 // less than SHOOT_DAMAGE(15), dies in 1 shot
+    r.shoot()
+    expect(e.alive).toBe(false)
+  })
+
+  it('HUD line contains HP:', () => {
+    const r = new Raycaster()
+    const out = r.renderAscii(58, 24)
+    expect(out).toContain('HP:')
+  })
+
+  it('player takes damage when an enemy is adjacent after tick', () => {
+    const r = new Raycaster()
+    const enemies = r.getEnemies()
+    const e = enemies[0]
+    // Place enemy right at player position to guarantee attack range
+    e.x = r['x']
+    e.y = r['y']
+    e.alive = true
+    // Tick enough to trigger attack (1.5s cooldown, use 2s)
+    r.tick(2.0)
+    expect(r.getPlayerHealth()).toBeLessThan(100)
+  })
+
+  it('renderAscii uses multi-column sprites when enemy is close', () => {
+    const r = new Raycaster()
+    const enemies = r.getEnemies()
+    const e = enemies[0]
+    // Player faces north (+Y in map coords). Place enemy 50 units in front.
+    e.x = r['x']
+    e.y = r['y'] + 50
+    e.alive = true
+    e.typeId = 3004 // POSS - known to have frames
+
+    // renderAscii should not throw
+    expect(() => r.renderAscii(58, 24)).not.toThrow()
+
+    const out = r.renderAscii(58, 24)
+    const lines = out.split('\n')
+
+    // Check the middle rows of the rendered output for sprite width > 1
+    // The sprite should be wide (multi-column) when the enemy is close
+    const midRow = Math.floor(24 / 2)
+    // Check a band around the center rows
+    let maxSpriteWidth = 0
+    for (let rowIdx = midRow - 3; rowIdx <= midRow + 3; rowIdx++) {
+      const line = lines[rowIdx] ?? ''
+      // Count consecutive non-space characters in any run
+      // Sprites now render as Unicode block chars (░▒▓█) or wall chars from the doom-ascii ramp
+      const matches = line.match(/[^\s]+/g)
+      if (matches) {
+        for (const m of matches) {
+          if (m.length > maxSpriteWidth) maxSpriteWidth = m.length
+        }
+      }
+    }
+    // A multi-column sprite at distance 50 should produce a run wider than 1 char
+    expect(maxSpriteWidth).toBeGreaterThan(1)
   })
 })

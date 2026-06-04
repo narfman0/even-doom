@@ -2,18 +2,23 @@
   "name": "even-doom",
   "version": "0.1.0",
   "scripts": {
-    "prebuild": "npx tsx scripts/process-wad.ts",
-    "predev": "npx tsx scripts/process-wad.ts",
-    "pretest": "npx tsx scripts/process-wad.ts",
+    "prebuild": "npx tsx scripts/process-wad.ts && npx tsx scripts/process-sprites.ts",
+    "predev": "npx tsx scripts/process-wad.ts && npx tsx scripts/process-sprites.ts",
+    "pretest": "npx tsx scripts/process-wad.ts && npx tsx scripts/process-sprites.ts",
     "dev": "vite",
     "build": "tsc && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "simulator": "npx tsx src/simulator/index.ts",
+    "presimulator": "npx tsx scripts/process-wad.ts && npx tsx scripts/process-sprites.ts",
+    "sprites": "npx tsx scripts/process-sprites.ts",
+    "render-frame": "npx tsx scripts/render-frame.ts"
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "latest"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "canvas": "^3.2.3",
     "tsx": "^4.22.4",
     "typescript": "^5",
     "vite": "^5",

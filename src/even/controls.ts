@@ -1,17 +1,10 @@
-export interface ControlState {
-  turnRate: number
-  moveForward: boolean
-  moveBack: boolean
-  shoot: boolean
-}
+import { InputState } from '../core/types'
 
-// IMU x-axis dead zone — small head movements are ignored
 const IMU_DEAD_ZONE = 0.05
-// Scale factor mapping raw IMU x to turn radians per second
 const IMU_TURN_SCALE = 3.0
 
 export class Controls {
-  private state: ControlState = {
+  private state: InputState = {
     turnRate: 0,
     moveForward: false,
     moveBack: false,
@@ -38,7 +31,7 @@ export class Controls {
     setTimeout(() => { this.state.shoot = false }, 100)
   }
 
-  getState(): ControlState {
+  getState(): InputState {
     return { ...this.state }
   }
 }
